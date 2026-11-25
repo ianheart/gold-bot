@@ -4,8 +4,8 @@ import urllib.request
 import urllib.parse
 from datetime import datetime
 
-TOKEN = os.environ.get("9287774486:AAGlkZmUhj3KndwaOaRakeLNpFn4EIi911E", "")
-CHAT_ID = os.environ.get("8803846659", "")
+TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 def send_telegram(msg):
     if not TOKEN or not CHAT_ID:
