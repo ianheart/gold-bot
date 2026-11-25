@@ -28,8 +28,10 @@ def rsi(closes, period=14):
     gains, losses = 0, 0
     for i in range(1, period+1):
         diff = closes[-i] - closes[-i-1]
-        if diff > 0: gains += diff
-        else: losses += -diff
+        if diff > 0:
+            gains += diff
+        else:
+            losses += -diff
     rs = (gains/period) / (losses/period + 0.000001)
     return 100 - (100 / (1 + rs))
 
@@ -43,7 +45,6 @@ for name, symbol in PAIRS.items():
         
         signal = None
         tp = sl = 0
-        # Scalp + Swing logic
         if price > sma20 and price > sma50 and r < 68:
             signal = "🟢 BUY"
             tp = price * 1.002
