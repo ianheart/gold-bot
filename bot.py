@@ -11,35 +11,41 @@ PAIRS = {
     "EUR/USD": "EURUSD=X"
 }
 
-def get_signal(symbol):
+def get_new_signal(symbol):
     df = yf.download(symbol, period="5d", interval="1h", progress=False)
     if df.empty or len(df) < 30:
         return None
     close = df['Close'].flatten()
-    ema9 = close.ewm(span=9).mean().iloc[-1]
-    ema21 = close.ewm(span=21).mean().iloc[-1]
+    ema9 = close.ewm(span=9).mean()
+    ema21 = close.ewm(span=21).mean()
     delta = close.diff()
     gain = delta.where(delta > 0, 0).rolling(14).mean().iloc[-1]
     loss = -delta.where(delta < 0, 0).rolling(14).mean().iloc[-1]
     rsi = 100 - (100 / (1 + gain / loss)) if loss != 0 else 50
     price = float(close.iloc[-1])
-    
-    if ema9 > ema21 and rsi < 70:
-        signal, sl, tp = "🟢 BUY", price * 0.997, price * 1.006
-    elif ema9 < ema21 and rsi > 30:
-        signal, sl, tp = "🔴 SELL", price * 1.003, price * 0.994
-    else:
-        signal, sl, tp = "⚪ HOLD / WAIT", price * 0.997, price * 1.006
-    return f"{signal}\nPrice: {price:.2f}\nRSI: {rsi:.1f} | EMA9: {ema9:.2f} | EMA21: {ema21:.2f}\nSL: {sl:.2f} | TP: {tp:.2f}"
 
-msg = "📊 TRADING SIGNALS (1H)\n\n"
+    prev_bull = ema9.iloc[-2] < ema21.iloc[-2] and ema9.iloc[-1] > ema21.iloc[-1]
+    prev_bear = ema9.iloc[-2] > ema21.iloc[-2] and ema9.iloc[-1] < ema21.iloc[-1]
+
+    if prev_bull and rsi < 70:
+        return f"🟢 NEW BUY\nEntry: {price:.2f}\nRSI: {rsi:.1f}\nSL: {price*0.997:.2f}\nTP1: {price*1.003:.2f}\nTP2: {price*1.006:.2f}\nTP3: {price*1.010:.2f}\nTP4: {price*1.015:.2f}"
+    if prev_bear and rsi > 30:
+        return f"🔴 NEW SELL\nEntry: {price:.2f}\nRSI: {rsi:.1f}\nSL: {price*1.003:.2f}\nTP1: {price*0.997:.2f}\nTP2: {price*0.994:.2f}\nTP3: {price*0.990:.2f}\nTP4: {price*0.985:.2f}"
+    return None
+
+new_signals = []
 for name, sym in PAIRS.items():
     try:
-        s = get_signal(sym)
-        msg += f"--- {name} ---\n{s}\n\n" if s else f"--- {name} ---\nNo data\n\n"
+        s = get_new_signal(sym)
+        if s:
+            new_signals.append(f"--- {name} ---\n{s}")
     except Exception as e:
-        msg += f"--- {name} ---\nError: {e}\n\n"
+        print(f"{name} error: {e}")
 
-requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-    json={"chat_id": CHAT_ID, "text": msg})
-print("Sent signals")
+if new_signals:
+    msg = "🚨 NEW SIGNAL (1H Crossover)\n\n" + "\n\n".join(new_signals)
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        json={"chat_id": CHAT_ID, "text": msg})
+    print("Sent new signals")
+else:
+    print("No new signal - staying quiet")
