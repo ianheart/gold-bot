@@ -59,6 +59,7 @@ def check(symbol, name):
         print(f"{name} error: {e}")
 
 print("Bot starting...")
+send_telegram("Bot is alive ✅ Test message - BTC check running")
 check("BTC-USD", "BTC/USD")
 check("XAUUSD=X", "GOLD")
 check("EURUSD=X", "EUR/USD")
